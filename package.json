@@ -1,0 +1,22 @@
+{
+  "name": "bugtrack",
+  "version": "1.0.0",
+  "description": "BugTrack — Issue Tracking Platform",
+  "private": true,
+  "scripts": {
+    "start": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm start --prefix server\" \"npm run dev --prefix client\"",
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm start --prefix server\" \"npm run dev --prefix client\"",
+    "server": "npm start --prefix server",
+    "client": "npm run dev --prefix client",
+    "seed": "npm run seed --prefix server",
+    "test": "npm test --prefix server",
+    "build": "npm run build --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.7",
+    "mongoose": "^9.11.2"
+  }
+}
