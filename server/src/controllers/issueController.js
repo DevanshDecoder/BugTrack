@@ -153,7 +153,7 @@ export const getIssueById = async (req, res, next) => {
 
 // @desc    Update issue details
 // @route   PUT /api/issues/:id
-// @access  Private (Admin, Developer, or issue Reporter)
+// @access  Private (Admin, Developer)
 export const updateIssue = async (req, res, next) => {
   try {
     const issue = await Issue.findById(req.params.id);
@@ -161,14 +161,11 @@ export const updateIssue = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Issue not found' });
     }
 
-    // Role check: Reporter can only edit their own issues
-    if (
-      req.projectRole === 'Reporter' &&
-      issue.reporter.toString() !== req.user._id.toString()
-    ) {
+    // Role check: Only Admin and Developer can edit issue details
+    if (!['Admin', 'Developer'].includes(req.projectRole)) {
       return res.status(403).json({
         success: false,
-        message: 'Reporters can only edit issues they reported',
+        message: 'Access denied: Only Project Admins and Developers can update issue details',
       });
     }
 
@@ -282,6 +279,13 @@ export const updateIssue = async (req, res, next) => {
 // @access  Private (Admin, Developer)
 export const updateIssueStatus = async (req, res, next) => {
   try {
+    if (!['Admin', 'Developer'].includes(req.projectRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only Project Admins and Developers can update issue status',
+      });
+    }
+
     const { status } = req.body;
     if (!status || !['Open', 'In Progress', 'Resolved', 'Closed'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Valid status is required' });
@@ -327,7 +331,7 @@ export const updateIssueStatus = async (req, res, next) => {
 
 // @desc    Delete an issue
 // @route   DELETE /api/issues/:id
-// @access  Private (Admin or Reporter who created the issue)
+// @access  Private (Admin only)
 export const deleteIssue = async (req, res, next) => {
   try {
     const issue = await Issue.findById(req.params.id);
@@ -335,14 +339,10 @@ export const deleteIssue = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Issue not found' });
     }
 
-    const isOwnerOrAdmin =
-      req.projectRole === 'Admin' ||
-      issue.reporter.toString() === req.user._id.toString();
-
-    if (!isOwnerOrAdmin) {
+    if (req.projectRole !== 'Admin') {
       return res.status(403).json({
         success: false,
-        message: 'Only Project Admins or the original Reporter can delete this issue',
+        message: 'Access denied: Only Project Admins can delete issues',
       });
     }
 

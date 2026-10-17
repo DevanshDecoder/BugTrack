@@ -25,9 +25,14 @@ export const LoginPage = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(
-        err.response?.data?.message || 'Login failed. Please check credentials.'
-      );
+      const serverMessage = err.response?.data?.message;
+      if (serverMessage) {
+        setError(serverMessage);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError('Cannot connect to the BugTrack backend server. Please verify backend is running on port 5000.');
+      } else {
+        setError(err.message || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }

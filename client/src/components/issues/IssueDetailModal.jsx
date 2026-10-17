@@ -26,13 +26,14 @@ export const IssueDetailModal = ({
   onIssueDeleted,
   onOpenEdit,
 }) => {
-  const { currentProject, canDeleteIssue, canEditAnyIssue, usersList } = useProject();
+  const { currentProject, canDeleteIssue, canEditAnyIssue, canChangeStatus, usersList } = useProject();
   const [activeTab, setActiveTab] = useState('comments'); // 'comments' | 'activity'
   const [updating, setUpdating] = useState(false);
 
   if (!issue) return null;
 
   const handleQuickStatusChange = async (newStatus) => {
+    if (!canChangeStatus) return;
     try {
       setUpdating(true);
       const res = await api.patch(`/issues/${issue._id}/status`, {
@@ -47,6 +48,7 @@ export const IssueDetailModal = ({
   };
 
   const handleQuickPriorityChange = async (newPriority) => {
+    if (!canEditAnyIssue) return;
     try {
       setUpdating(true);
       const res = await api.put(`/issues/${issue._id}`, {
@@ -61,6 +63,7 @@ export const IssueDetailModal = ({
   };
 
   const handleQuickAssigneeChange = async (newAssigneeId) => {
+    if (!canEditAnyIssue) return;
     try {
       setUpdating(true);
       const res = await api.put(`/issues/${issue._id}`, {
@@ -75,6 +78,7 @@ export const IssueDetailModal = ({
   };
 
   const handleDelete = async () => {
+    if (!canDeleteIssue(issue)) return;
     if (!window.confirm(`Are you sure you want to delete ${issue.issueKey}?`)) {
       return;
     }
@@ -122,9 +126,9 @@ export const IssueDetailModal = ({
               <span>Status:</span>
               <select
                 value={issue.status}
-                disabled={updating}
+                disabled={updating || !canChangeStatus}
                 onChange={(e) => handleQuickStatusChange(e.target.value)}
-                className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white shadow-sm focus:ring-1 focus:ring-indigo-500"
+                className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white shadow-sm focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
               >
                 <option value="Open">Open</option>
                 <option value="In Progress">In Progress</option>
@@ -138,9 +142,9 @@ export const IssueDetailModal = ({
               <span>Priority:</span>
               <select
                 value={issue.priority}
-                disabled={updating}
+                disabled={updating || !canEditAnyIssue}
                 onChange={(e) => handleQuickPriorityChange(e.target.value)}
-                className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white shadow-sm focus:ring-1 focus:ring-indigo-500"
+                className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white shadow-sm focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -154,9 +158,9 @@ export const IssueDetailModal = ({
               <span>Assignee:</span>
               <select
                 value={issue.assignee?._id || issue.assignee || ''}
-                disabled={updating}
+                disabled={updating || !canEditAnyIssue}
                 onChange={(e) => handleQuickAssigneeChange(e.target.value)}
-                className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white shadow-sm focus:ring-1 focus:ring-indigo-500 max-w-[130px] truncate"
+                className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white shadow-sm focus:ring-1 focus:ring-indigo-500 max-w-[130px] truncate disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
               >
                 <option value="">Unassigned</option>
                 {selectableUsers.map((u) => {
@@ -174,17 +178,19 @@ export const IssueDetailModal = ({
 
           {/* Action buttons */}
           <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={Edit2}
-              onClick={() => {
-                onClose();
-                onOpenEdit(issue);
-              }}
-            >
-              Edit
-            </Button>
+            {canEditAnyIssue && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={Edit2}
+                onClick={() => {
+                  onClose();
+                  onOpenEdit(issue);
+                }}
+              >
+                Edit
+              </Button>
+            )}
             {canDeleteIssue(issue) && (
               <Button
                 variant="danger"

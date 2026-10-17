@@ -1,5 +1,6 @@
 import React from 'react';
 import { KanbanColumn } from './KanbanColumn';
+import { useProject } from '../../context/ProjectContext';
 import api from '../../api/axios';
 
 const COLUMNS = [
@@ -15,12 +16,20 @@ export const KanbanBoard = ({
   onSelectIssue,
   onOpenNewIssue,
 }) => {
+  const { canChangeStatus } = useProject();
+
   const handleDragStart = (e, issue) => {
+    if (!canChangeStatus) return;
     e.dataTransfer.setData('text/plain', issue._id);
     e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleStatusChange = async (issueId, newStatus) => {
+    if (!canChangeStatus) {
+      alert('Only Project Admins and Developers can update issue status');
+      return;
+    }
+
     // Optimistic local update
     setIssues((prev) =>
       prev.map((i) => (i._id === issueId ? { ...i, status: newStatus } : i))

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import issueRoutes from './routes/issueRoutes.js';
@@ -18,7 +19,15 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'BugTrack API', timestamp: new Date().toISOString() });
+  const dbState = mongoose.connection.readyState;
+  const dbStates = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+  res.json({
+    status: dbState === 1 ? 'ok' : 'degraded',
+    database: dbStates[dbState] || 'unknown',
+    databaseName: mongoose.connection.name || null,
+    service: 'BugTrack API',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Routes

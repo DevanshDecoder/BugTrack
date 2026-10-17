@@ -1,9 +1,12 @@
 import React from 'react';
 import { PriorityBadge } from '../common/Badge';
 import { Avatar } from '../common/Avatar';
+import { useProject } from '../../context/ProjectContext';
 import { Calendar, Tag, MoveRight } from 'lucide-react';
 
 export const KanbanCard = ({ issue, onSelectIssue, onStatusChange, onDragStart }) => {
+  const { canChangeStatus } = useProject();
+
   const nextStatusMap = {
     Open: 'In Progress',
     'In Progress': 'Resolved',
@@ -13,6 +16,7 @@ export const KanbanCard = ({ issue, onSelectIssue, onStatusChange, onDragStart }
 
   const handleNextStatus = (e) => {
     e.stopPropagation();
+    if (!canChangeStatus) return;
     const next = nextStatusMap[issue.status];
     if (next && onStatusChange) {
       onStatusChange(issue._id, next);
@@ -21,10 +25,12 @@ export const KanbanCard = ({ issue, onSelectIssue, onStatusChange, onDragStart }
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, issue)}
+      draggable={canChangeStatus}
+      onDragStart={(e) => canChangeStatus && onDragStart(e, issue)}
       onClick={() => onSelectIssue(issue)}
-      className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-150 cursor-grab active:cursor-grabbing group select-none space-y-2.5"
+      className={`bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-150 group select-none space-y-2.5 ${
+        canChangeStatus ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+      }`}
     >
       {/* Top row: Key and Priority */}
       <div className="flex items-center justify-between gap-2">
@@ -72,13 +78,15 @@ export const KanbanCard = ({ issue, onSelectIssue, onStatusChange, onDragStart }
         )}
 
         {/* Quick Shift Button */}
-        <button
-          onClick={handleNextStatus}
-          title={`Move to ${nextStatusMap[issue.status]}`}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
-        >
-          <MoveRight className="w-3.5 h-3.5" />
-        </button>
+        {canChangeStatus && (
+          <button
+            onClick={handleNextStatus}
+            title={`Move to ${nextStatusMap[issue.status]}`}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
+          >
+            <MoveRight className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );

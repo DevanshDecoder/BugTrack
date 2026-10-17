@@ -136,11 +136,8 @@ export const ProjectProvider = ({ children }) => {
 
   const canManageProject = isAdmin;
   const canEditAnyIssue = isAdmin || isDeveloper;
-  const canDeleteIssue = (issue) => {
-    if (isAdmin) return true;
-    if (issue?.reporter?._id === user?._id || issue?.reporter === user?._id) return true;
-    return false;
-  };
+  const canChangeStatus = isAdmin || isDeveloper;
+  const canDeleteIssue = (issue) => isAdmin;
 
   return (
     <ProjectContext.Provider
@@ -156,6 +153,7 @@ export const ProjectProvider = ({ children }) => {
         isReporter,
         canManageProject,
         canEditAnyIssue,
+        canChangeStatus,
         canDeleteIssue,
         fetchProjects,
         fetchUsers,

@@ -3,6 +3,7 @@ import Issue from '../models/Issue.js';
 
 /**
  * Helper to determine a user's role in a project
+ * Valid roles: Admin, Developer, Reporter
  */
 export const getUserProjectRole = (project, userId) => {
   if (!project || !userId) return null;
@@ -31,18 +32,22 @@ export const getUserProjectRole = (project, userId) => {
 
 /**
  * Middleware to ensure current user is an authorized member of the project
- * @param {Array<string>} allowedRoles e.g. ['Admin', 'Developer'] or [] for any member
+ * and has one of the allowed roles.
+ * @param {Array<string>|string} allowedRoles e.g. ['Admin'], ['Admin', 'Developer'], or [] for any member
  */
 export const requireProjectMember = (allowedRoles = []) => {
+  // Normalize allowedRoles to an array of valid strings
+  const rolesArray = Array.isArray(allowedRoles)
+    ? allowedRoles
+    : allowedRoles
+    ? [allowedRoles]
+    : [];
+
   return async (req, res, next) => {
     try {
-      let projectId =
-        req.params.projectId ||
-        req.body.project ||
-        req.body.projectId ||
-        req.query.projectId;
+      let projectId = req.params.projectId;
 
-      // If no projectId found directly, check if issueId is present
+      // For issue-level routes, look up the issue FIRST to ensure project context is genuine and untampered
       if (!projectId && (req.params.issueId || req.params.id)) {
         const idToCheck = req.params.issueId || req.params.id;
         const issue = await Issue.findById(idToCheck);
@@ -50,6 +55,14 @@ export const requireProjectMember = (allowedRoles = []) => {
           projectId = issue.project;
           req.issue = issue;
         }
+      }
+
+      // Fallback to body/query if not an existing resource route (e.g. POST /api/issues)
+      if (!projectId) {
+        projectId =
+          req.body.project ||
+          req.body.projectId ||
+          req.query.projectId;
       }
 
       if (!projectId) {
@@ -74,10 +87,11 @@ export const requireProjectMember = (allowedRoles = []) => {
         });
       }
 
-      if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+      // If specific roles are required, ensure the user's role is in the allowed list
+      if (rolesArray.length > 0 && !rolesArray.includes(role)) {
         return res.status(403).json({
           success: false,
-          message: `Access denied: Role '${role}' lacks permission for this action (Requires: ${allowedRoles.join(
+          message: `Access denied: Role '${role}' lacks permission for this action (Requires: ${rolesArray.join(
             ', '
           )})`,
         });

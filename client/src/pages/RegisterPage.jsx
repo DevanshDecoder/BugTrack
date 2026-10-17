@@ -32,9 +32,14 @@ export const RegisterPage = () => {
       await register(name, email, password, role);
       navigate('/');
     } catch (err) {
-      setError(
-        err.response?.data?.message || 'Registration failed. Try another email.'
-      );
+      const serverMessage = err.response?.data?.message;
+      if (serverMessage) {
+        setError(serverMessage);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError('Cannot connect to the BugTrack backend server. Please verify backend is running on port 5000.');
+      } else {
+        setError(err.message || 'Registration failed. Please check inputs and try again.');
+      }
     } finally {
       setLoading(false);
     }

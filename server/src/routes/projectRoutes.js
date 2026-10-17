@@ -20,7 +20,7 @@ router.route('/').post(createProject).get(getProjects);
 
 router
   .route('/:projectId')
-  .get(getProjectById)
+  .get(requireProjectMember(['Admin', 'Developer', 'Reporter']), getProjectById)
   .put(requireProjectMember(['Admin']), updateProject)
   .delete(requireProjectMember(['Admin']), deleteProject);
 

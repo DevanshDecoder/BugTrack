@@ -93,6 +93,7 @@ export const ProjectSettingsPage = ({ onOpenNewProject }) => {
   };
 
   const handleRoleChange = async (targetUserId, newRole) => {
+    if (!isAdmin) return;
     try {
       const uId = (user?._id || user?.id)?.toString();
       if (uId === targetUserId.toString()) {
@@ -104,10 +105,6 @@ export const ProjectSettingsPage = ({ onOpenNewProject }) => {
       await fetchProjects();
     } catch (err) {
       console.warn('Backend role update warning:', err.message);
-      const uId = (user?._id || user?.id)?.toString();
-      if (uId === targetUserId.toString()) {
-        switchRole(newRole);
-      }
     }
   };
 
@@ -345,17 +342,19 @@ export const ProjectSettingsPage = ({ onOpenNewProject }) => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <select
-                    value={m.role || 'Developer'}
-                    onChange={(e) =>
-                      handleRoleChange(memberUser._id, e.target.value)
-                    }
-                    className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-800 shadow-2xs hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                  >
-                    <option value="Admin">Admin</option>
-                    <option value="Developer">Developer</option>
-                    <option value="Reporter">Reporter</option>
-                  </select>
+                  {isAdmin && (
+                    <select
+                      value={m.role || 'Developer'}
+                      onChange={(e) =>
+                        handleRoleChange(memberUser._id, e.target.value)
+                      }
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-800 shadow-2xs hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                    >
+                      <option value="Admin">Admin</option>
+                      <option value="Developer">Developer</option>
+                      <option value="Reporter">Reporter</option>
+                    </select>
+                  )}
 
                   <RoleBadge role={m.role || 'Developer'} />
 
