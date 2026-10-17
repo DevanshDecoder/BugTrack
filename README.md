@@ -30,10 +30,10 @@ A modern, production-ready MERN-stack issue tracking and sprint management platf
 ### 4. Authentication and Team Permissions (RBAC)
 - **Secure Authentication**: JWT token authentication with bcrypt password hashing.
 - **Multi-project architecture**: Multiple projects per user with custom key prefixes (e.g., `BUG`, `CORE`).
-- **Role-Based Access Control**:
+- **Strict Role-Based Access Control**:
   - 👑 **Admin**: Full control over project settings, members, role updates, and ticket deletion.
   - 💻 **Developer**: Create, assign, edit details, and transition issue statuses on Kanban.
-  - 📝 **Reporter**: Report issues, participate in discussions, and update self-reported items.
+  - 📝 **Reporter**: Report issues, comment on discussions, and view analytics. (Restricted from moving status, editing attributes, or deleting tickets).
 
 ### 5. Issue Discussion and Audit Trail
 - **Discussions & Comments**: Threaded commentary with author avatars, timestamps, and delete controls.
@@ -57,46 +57,40 @@ A modern, production-ready MERN-stack issue tracking and sprint management platf
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Deployment Guide (Vercel + Render + MongoDB Atlas)
 
-### 1. Prerequisites
-- **Node.js** (v18+)
-- **MongoDB** running locally on port `27017` or a **MongoDB Atlas** connection string.
+### 1. Database (MongoDB Atlas)
+1. In your MongoDB Atlas cluster, go to **Network Access** and ensure your IP is allowed (or `0.0.0.0/0` to allow cloud deployments like Render).
+2. Obtain your connection URI:
+   ```
+   mongodb+srv://<username>:<password>@cluster0.9nhandh.mongodb.net/bugtrack?appName=Cluster0
+   ```
+   *(Note: The `/bugtrack` database name is guaranteed by the server's connection settings).*
 
-### 2. Backend Setup
-```bash
-# Navigate to backend directory
-cd server
+### 2. Backend Deployment (Render)
+1. Create a new **Web Service** on Render and connect your GitHub repository (`BugTrack`).
+2. Configure settings:
+   - **Root Directory**: `server`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node src/server.js`
+3. Add Environment Variables:
+   - `NODE_ENV`: `production`
+   - `PORT`: `5000` (or leave default assigned by Render)
+   - `MONGODB_URI`: your MongoDB Atlas connection string
+   - `JWT_SECRET`: your secret key (e.g. `your_production_secret_key_12345`)
+   - `JWT_EXPIRES_IN`: `7d`
+4. Copy the deployed backend URL (e.g. `https://bugtrack-api.onrender.com`).
 
-# Install dependencies
-npm install
-
-# (Optional) Verify or customize .env
-# Default: MONGODB_URI=mongodb://127.0.0.1:27017/bugtrack
-
-# Seed database with realistic demo issues, users, and audit logs
-npm run seed
-
-# Run automated tests
-npm test
-
-# Start backend dev server (port 5000)
-npm run dev
-```
-
-### 3. Frontend Setup
-```bash
-# Open a new terminal and navigate to frontend directory
-cd client
-
-# Install dependencies
-npm install
-
-# Start frontend dev server (port 3000)
-npm run dev
-```
-
-Now open your browser at **`http://localhost:3000`**.
+### 3. Frontend Deployment (Vercel)
+1. Import your repository on Vercel.
+2. Configure settings:
+   - **Root Directory**: `client`
+   - **Framework Preset**: `Vite`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+3. Add Environment Variable:
+   - `VITE_API_URL`: `https://bugtrack-api.onrender.com/api` (URL of your Render backend with `/api`)
+4. Deploy! The included `vercel.json` ensures client-side routing works seamlessly across all views.
 
 ---
 
@@ -116,6 +110,9 @@ The database seed script (`npm run seed`) preloads three role-ready test account
 
 ## 📡 REST API Reference
 
+### Health & Diagnostics
+- `GET /api/health` — Checks API service status, database connectivity (`connected`/`disconnected`), and active database name.
+
 ### Authentication
 - `POST /api/auth/register` — Register a new account
 - `POST /api/auth/login` — Login and receive JWT token
@@ -134,15 +131,15 @@ The database seed script (`npm run seed`) preloads three role-ready test account
 
 ### Issues
 - `GET /api/issues?projectId=...` — Filtered issue list (supports `search`, `status`, `priority`, `assignee`)
-- `POST /api/issues` — Create a ticket
-- `GET /api/issues/:id` — Issue details
-- `PUT /api/issues/:id` — Update issue attributes
-- `PATCH /api/issues/:id/status` — Quick status update (Kanban drag-and-drop)
-- `DELETE /api/issues/:id` — Delete issue *(Admin or Reporter)*
+- `POST /api/issues` — Create a ticket *(Admin, Developer, Reporter)*
+- `GET /api/issues/:id` — Issue details *(Project members)*
+- `PUT /api/issues/:id` — Update issue attributes *(Admin, Developer only)*
+- `PATCH /api/issues/:id/status` — Quick status update (Kanban drag-and-drop) *(Admin, Developer only)*
+- `DELETE /api/issues/:id` — Delete issue *(Admin only)*
 
 ### Comments & History
 - `GET /api/issues/:issueId/comments` — Issue comment thread
 - `POST /api/issues/:issueId/comments` — Post comment
-- `DELETE /api/issues/:issueId/comments/:commentId` — Delete comment
+- `DELETE /api/issues/:issueId/comments/:commentId` — Delete comment *(Author or Project Admin)*
 - `GET /api/analytics/project/:projectId` — Full dashboard metrics, trends, and workload
 - `GET /api/analytics/issues/:issueId/activities` — Issue audit history
