@@ -119,9 +119,10 @@ export const RegisterPage = () => {
               onChange={(e) => setRole(e.target.value)}
               className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="Developer">Developer (Work on & assign issues)</option>
-              <option value="Admin">Admin (Full project control)</option>
-              <option value="Reporter">Reporter (Report & track issues)</option>
+              <option value="Developer">Developer (Resolve issues)</option>
+              <option value="Tester">Tester (Raise & verify resolved issues)</option>
+              <option value="Reporter">Reporter (Raise & assign issues)</option>
+              <option value="Admin">Admin (Full project & team management)</option>
             </select>
           </div>
 

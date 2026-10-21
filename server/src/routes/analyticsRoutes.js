@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.use(protect);
 
-router.get('/project/:projectId', requireProjectMember(), getProjectAnalytics);
-router.get('/issues/:issueId/activities', requireProjectMember(), getIssueActivities);
+router.get('/project/:projectId', getProjectAnalytics);
+router.get('/issues/:issueId/activities', getIssueActivities);
 
 export default router;

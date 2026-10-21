@@ -5,7 +5,7 @@ import Issue from '../models/Issue.js';
  * Helper to determine a user's role in a project
  * Valid roles: Admin, Developer, Reporter
  */
-export const getUserProjectRole = (project, userId) => {
+export const getUserProjectRole = (project, userId, userGlobalRole = null) => {
   if (!project || !userId) return null;
   const uId = userId.toString();
 
@@ -21,9 +21,13 @@ export const getUserProjectRole = (project, userId) => {
     }
   }
 
-  // 2. If not found in members but is owner, fallback to Admin
+  // 2. If not found in members but is owner or global Admin, fallback to Admin
   const ownerId = (project.owner?._id || project.owner)?.toString();
   if (ownerId && ownerId === uId) {
+    return 'Admin';
+  }
+
+  if (userGlobalRole === 'Admin') {
     return 'Admin';
   }
 
@@ -33,7 +37,7 @@ export const getUserProjectRole = (project, userId) => {
 /**
  * Middleware to ensure current user is an authorized member of the project
  * and has one of the allowed roles.
- * @param {Array<string>|string} allowedRoles e.g. ['Admin'], ['Admin', 'Developer'], or [] for any member
+ * @param {Array<string>|string} allowedRoles e.g. ['Admin'], ['Admin', 'Developer', 'Tester'], or [] for any member
  */
 export const requireProjectMember = (allowedRoles = []) => {
   // Normalize allowedRoles to an array of valid strings
@@ -78,12 +82,16 @@ export const requireProjectMember = (allowedRoles = []) => {
           .json({ success: false, message: 'Project not found' });
       }
 
-      const role = getUserProjectRole(project, req.user._id);
+      const role = getUserProjectRole(project, req.user._id, req.user.role);
 
       if (!role) {
+        const isCommentRoute = req.originalUrl && req.originalUrl.includes('comments');
+        const message = isCommentRoute
+          ? 'Access denied: Conversations and comments for this project are private to the project team and Admins.'
+          : 'Access denied: You are not a member of this project';
         return res.status(403).json({
           success: false,
-          message: 'Access denied: You are not a member of this project',
+          message,
         });
       }
 

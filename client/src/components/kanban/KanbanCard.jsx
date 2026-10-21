@@ -5,31 +5,52 @@ import { useProject } from '../../context/ProjectContext';
 import { Calendar, Tag, MoveRight } from 'lucide-react';
 
 export const KanbanCard = ({ issue, onSelectIssue, onStatusChange, onDragStart }) => {
-  const { canChangeStatus } = useProject();
+  const { canChangeStatus, isAdmin, isDeveloper, isTester, validateStatusTransition } = useProject();
 
-  const nextStatusMap = {
-    Open: 'In Progress',
-    'In Progress': 'Resolved',
-    Resolved: 'Closed',
-    Closed: 'Open',
-  };
+  // Determine allowed next quick status based on role
+  let nextStatus = null;
+  if (isAdmin) {
+    const nextStatusMap = {
+      Open: 'In Progress',
+      'In Progress': 'Resolved',
+      Resolved: 'Closed',
+      Closed: 'Open',
+    };
+    nextStatus = nextStatusMap[issue.status];
+  } else if (isDeveloper) {
+    if (issue.status === 'Open') nextStatus = 'In Progress';
+    else if (issue.status === 'In Progress') nextStatus = 'Resolved';
+    // Developer cannot move to Closed (must be verified by Tester)
+  } else if (isTester) {
+    if (issue.status === 'Resolved') nextStatus = 'Closed';
+  }
+
+  const isCardDraggable = canChangeStatus && (!isTester || issue.status === 'Resolved');
 
   const handleNextStatus = (e) => {
     e.stopPropagation();
-    if (!canChangeStatus) return;
-    const next = nextStatusMap[issue.status];
-    if (next && onStatusChange) {
-      onStatusChange(issue._id, next);
+    if (!nextStatus) return;
+
+    if (validateStatusTransition) {
+      const val = validateStatusTransition(issue.status, nextStatus);
+      if (!val.allowed) {
+        alert(val.message);
+        return;
+      }
+    }
+
+    if (onStatusChange) {
+      onStatusChange(issue._id, nextStatus);
     }
   };
 
   return (
     <div
-      draggable={canChangeStatus}
-      onDragStart={(e) => canChangeStatus && onDragStart(e, issue)}
+      draggable={isCardDraggable}
+      onDragStart={(e) => isCardDraggable && onDragStart(e, issue)}
       onClick={() => onSelectIssue(issue)}
       className={`bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-150 group select-none space-y-2.5 ${
-        canChangeStatus ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+        isCardDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       }`}
     >
       {/* Top row: Key and Priority */}
@@ -78,10 +99,10 @@ export const KanbanCard = ({ issue, onSelectIssue, onStatusChange, onDragStart }
         )}
 
         {/* Quick Shift Button */}
-        {canChangeStatus && (
+        {canChangeStatus && nextStatus && (
           <button
             onClick={handleNextStatus}
-            title={`Move to ${nextStatusMap[issue.status]}`}
+            title={`Move to ${nextStatus}`}
             className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
           >
             <MoveRight className="w-3.5 h-3.5" />

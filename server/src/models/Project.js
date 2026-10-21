@@ -9,7 +9,7 @@ const projectMemberSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['Admin', 'Developer', 'Reporter'],
+      enum: ['Admin', 'Developer', 'Tester', 'Reporter'],
       default: 'Developer',
     },
     joinedAt: {

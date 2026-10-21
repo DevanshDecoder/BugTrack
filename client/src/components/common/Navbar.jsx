@@ -21,6 +21,7 @@ export const Navbar = ({ onOpenNewIssue, onOpenNewProject }) => {
     selectProject,
     currentRole,
     switchRole,
+    canRaiseIssue,
   } = useProject();
 
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
@@ -66,14 +67,16 @@ export const Navbar = ({ onOpenNewIssue, onOpenNewProject }) => {
                     className="fixed inset-0 z-20"
                     onClick={() => setProjectDropdownOpen(false)}
                   />
-                  <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95">
-                    <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      Your Projects
+                  <div className="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95">
+                    <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <span>All Projects</span>
+                      <span className="text-[10px] text-slate-400 font-normal">({projects.length})</span>
                     </div>
 
                     <div className="max-h-60 overflow-y-auto">
                       {projects.map((proj) => {
                         const isSelected = currentProject?._id === proj._id;
+                        const projRole = proj.currentUserRole || 'Viewer';
                         return (
                           <button
                             key={proj._id}
@@ -93,9 +96,24 @@ export const Navbar = ({ onOpenNewIssue, onOpenNewProject }) => {
                               </span>
                               <span className="truncate">{proj.name}</span>
                             </div>
-                            {isSelected && (
-                              <Check className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
-                            )}
+                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
+                                projRole === 'Admin'
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : projRole === 'Developer'
+                                  ? 'bg-indigo-100 text-indigo-700'
+                                  : projRole === 'Tester'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : projRole === 'Reporter'
+                                  ? 'bg-teal-100 text-teal-700'
+                                  : 'bg-slate-100 text-slate-500'
+                              }`}>
+                                {projRole}
+                              </span>
+                              {isSelected && (
+                                <Check className="w-3.5 h-3.5 text-indigo-600" />
+                              )}
+                            </div>
                           </button>
                         );
                       })}
@@ -133,12 +151,14 @@ export const Navbar = ({ onOpenNewIssue, onOpenNewProject }) => {
               >
                 <option value="Admin">Admin</option>
                 <option value="Developer">Developer</option>
+                <option value="Tester">Tester</option>
                 <option value="Reporter">Reporter</option>
+                <option value="Viewer">Viewer (Read-only)</option>
               </select>
             </div>
 
             {/* New Issue Button */}
-            {currentProject && (
+            {currentProject && canRaiseIssue && (
               <button
                 onClick={onOpenNewIssue}
                 className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-sm shadow-indigo-200 transition"

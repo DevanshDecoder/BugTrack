@@ -47,7 +47,15 @@ const seed = async () => {
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
     });
 
-    console.log('Created demo users: Admin, Developer, Reporter');
+    const testerUser = await User.create({
+      name: 'Taylor Reed (QA)',
+      email: 'tester@bugtrack.io',
+      password: 'password123',
+      role: 'Tester',
+      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    });
+
+    console.log('Created demo users: Admin, Developer, Tester, Reporter');
 
     // 2. Create Project
     const project = await Project.create({
@@ -58,6 +66,7 @@ const seed = async () => {
       members: [
         { user: adminUser._id, role: 'Admin' },
         { user: devUser._id, role: 'Developer' },
+        { user: testerUser._id, role: 'Tester' },
         { user: reporterUser._id, role: 'Reporter' },
       ],
       issueCounter: 8,

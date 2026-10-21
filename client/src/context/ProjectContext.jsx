@@ -78,7 +78,7 @@ export const ProjectProvider = ({ children }) => {
     if (activeRoleOverride) {
       return activeRoleOverride;
     }
-    if (!user) return 'Developer';
+    if (!user) return 'Viewer';
     if (!currentProject) return user.role || 'Developer';
 
     const uId = (user._id || user.id)?.toString();
@@ -93,13 +93,18 @@ export const ProjectProvider = ({ children }) => {
       }
     }
 
-    // 2. Fall back to user's registered role, or 'Admin' if owner
+    // 2. Fall back to 'Admin' if owner or if user's global system role is Admin
     const ownerId = (currentProject.owner?._id || currentProject.owner)?.toString();
     if (ownerId && ownerId === uId) {
-      return user.role || 'Admin';
+      return 'Admin';
     }
 
-    return user.role || 'Developer';
+    if (user.role === 'Admin') {
+      return 'Admin';
+    }
+
+    // 3. User is not in this project's team -> read-only Viewer
+    return 'Viewer';
   })();
 
   // Switch role actively
@@ -130,14 +135,57 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
+  const isMember = currentRole !== 'Viewer';
   const isAdmin = currentRole === 'Admin';
   const isDeveloper = currentRole === 'Developer';
+  const isTester = currentRole === 'Tester';
   const isReporter = currentRole === 'Reporter';
+  const isViewer = currentRole === 'Viewer';
 
   const canManageProject = isAdmin;
-  const canEditAnyIssue = isAdmin || isDeveloper;
-  const canChangeStatus = isAdmin || isDeveloper;
   const canDeleteIssue = (issue) => isAdmin;
+  const canRaiseIssue = isMember;
+  const canAssignIssue = isAdmin || isReporter;
+  const canEditAnyIssue = isMember;
+  const canViewComments = isMember || isAdmin;
+  const canChangeStatus = isAdmin || isDeveloper || isTester;
+
+  const validateStatusTransition = (oldStatus, newStatus) => {
+    if (oldStatus === newStatus) return { allowed: true };
+    if (isAdmin) return { allowed: true };
+
+    if (isDeveloper) {
+      if (newStatus === 'Closed') {
+        return {
+          allowed: false,
+          message: "Developers cannot close issues directly. When an issue is marked as 'Resolved', it must be verified and closed by a Tester or Admin.",
+        };
+      }
+      return { allowed: true };
+    }
+
+    if (isTester) {
+      if (oldStatus !== 'Resolved') {
+        return {
+          allowed: false,
+          message: "Testers can only verify issues that are currently 'Resolved' (move to 'Closed' or reopen if verification fails).",
+        };
+      }
+      return { allowed: true };
+    }
+
+    if (isReporter) {
+      return {
+        allowed: false,
+        message: 'Reporters can raise and assign issues, but cannot change issue status.',
+      };
+    }
+
+    return {
+      allowed: false,
+      message: 'You must be a project member to change issue status.',
+    };
+  };
 
   return (
     <ProjectContext.Provider
@@ -148,13 +196,20 @@ export const ProjectProvider = ({ children }) => {
         usersList,
         currentRole,
         activeRoleOverride,
+        isMember,
         isAdmin,
         isDeveloper,
+        isTester,
         isReporter,
+        isViewer,
         canManageProject,
-        canEditAnyIssue,
-        canChangeStatus,
         canDeleteIssue,
+        canRaiseIssue,
+        canAssignIssue,
+        canEditAnyIssue,
+        canViewComments,
+        canChangeStatus,
+        validateStatusTransition,
         fetchProjects,
         fetchUsers,
         selectProject,

@@ -291,6 +291,7 @@ export const ProjectSettingsPage = ({ onOpenNewProject }) => {
                 className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="Developer">Developer</option>
+                <option value="Tester">Tester</option>
                 <option value="Reporter">Reporter</option>
                 <option value="Admin">Admin</option>
               </select>
@@ -352,6 +353,7 @@ export const ProjectSettingsPage = ({ onOpenNewProject }) => {
                     >
                       <option value="Admin">Admin</option>
                       <option value="Developer">Developer</option>
+                      <option value="Tester">Tester</option>
                       <option value="Reporter">Reporter</option>
                     </select>
                   )}

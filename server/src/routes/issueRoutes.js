@@ -22,32 +22,32 @@ router.use(protect);
 // Issue collection endpoints
 router
   .route('/')
-  .post(requireProjectMember(['Admin', 'Developer', 'Reporter']), createIssue)
-  .get(requireProjectMember(['Admin', 'Developer', 'Reporter']), getIssues);
+  .post(requireProjectMember(['Admin', 'Developer', 'Tester', 'Reporter']), createIssue)
+  .get(getIssues); // Read-only visibility for all authenticated users
 
-// Single issue endpoints with strict RBAC:
-// - View: Admin, Developer, Reporter
-// - Edit details: Admin, Developer only (Reporters cannot edit)
-// - Delete: Admin only (Developers & Reporters cannot delete)
+// Single issue endpoints:
+// - View: All authenticated users
+// - Edit details: Admin, Developer, Tester, Reporter (assignee restricted to Admin/Reporter)
+// - Delete: Admin only
 router
   .route('/:id')
-  .get(requireProjectMember(['Admin', 'Developer', 'Reporter']), getIssueById)
-  .put(requireProjectMember(['Admin', 'Developer']), updateIssue)
+  .get(getIssueById)
+  .put(requireProjectMember(['Admin', 'Developer', 'Tester', 'Reporter']), updateIssue)
   .delete(requireProjectMember(['Admin']), deleteIssue);
 
-// Status transition (Kanban): Admin and Developer only
+// Status transition (Kanban): Admin, Developer, Tester (with verification workflow)
 router
   .route('/:id/status')
-  .patch(requireProjectMember(['Admin', 'Developer']), updateIssueStatus);
+  .patch(requireProjectMember(['Admin', 'Developer', 'Tester']), updateIssueStatus);
 
-// Nested comments for issues (All project members can discuss)
+// Nested comments for issues (Visible ONLY to project team members and Admins)
 router
   .route('/:issueId/comments')
-  .post(requireProjectMember(['Admin', 'Developer', 'Reporter']), addComment)
-  .get(requireProjectMember(['Admin', 'Developer', 'Reporter']), getComments);
+  .post(requireProjectMember(['Admin', 'Developer', 'Tester', 'Reporter']), addComment)
+  .get(requireProjectMember(['Admin', 'Developer', 'Tester', 'Reporter']), getComments);
 
 router
   .route('/:issueId/comments/:commentId')
-  .delete(requireProjectMember(['Admin', 'Developer', 'Reporter']), deleteComment);
+  .delete(requireProjectMember(['Admin', 'Developer', 'Tester', 'Reporter']), deleteComment);
 
 export default router;

@@ -55,16 +55,14 @@ export const createProject = async (req, res, next) => {
   }
 };
 
-// @desc    Get all projects user belongs to
+// @desc    Get all projects (all authenticated users can view all projects)
 // @route   GET /api/projects
 // @access  Private
 export const getProjects = async (req, res, next) => {
   try {
     const userId = req.user._id;
 
-    const projects = await Project.find({
-      $or: [{ owner: userId }, { 'members.user': userId }],
-    })
+    const projects = await Project.find({})
       .populate('owner', 'name email avatar')
       .populate('members.user', 'name email avatar')
       .sort({ updatedAt: -1 });
@@ -74,6 +72,7 @@ export const getProjects = async (req, res, next) => {
       return {
         ...proj.toObject(),
         currentUserRole: role,
+        isMember: !!role,
       };
     });
 
@@ -87,7 +86,7 @@ export const getProjects = async (req, res, next) => {
   }
 };
 
-// @desc    Get single project details
+// @desc    Get single project details (viewable by all authenticated users)
 // @route   GET /api/projects/:projectId
 // @access  Private
 export const getProjectById = async (req, res, next) => {
@@ -101,18 +100,13 @@ export const getProjectById = async (req, res, next) => {
     }
 
     const role = getUserProjectRole(project, req.user._id);
-    if (!role) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied: You are not a member of this project',
-      });
-    }
 
     res.json({
       success: true,
       data: {
         ...project.toObject(),
         currentUserRole: role,
+        isMember: !!role,
       },
     });
   } catch (error) {
@@ -191,7 +185,7 @@ export const addProjectMember = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'User ID is required' });
     }
 
-    const memberRole = role && ['Admin', 'Developer', 'Reporter'].includes(role) ? role : 'Developer';
+    const memberRole = role && ['Admin', 'Developer', 'Tester', 'Reporter'].includes(role) ? role : 'Developer';
 
     // Check if already a member
     const alreadyMember = project.members.some(
@@ -234,8 +228,8 @@ export const updateMemberRole = async (req, res, next) => {
     const { userId } = req.params;
     const project = req.project;
 
-    if (!role || !['Admin', 'Developer', 'Reporter'].includes(role)) {
-      return res.status(400).json({ success: false, message: 'Valid role is required' });
+    if (!role || !['Admin', 'Developer', 'Tester', 'Reporter'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Valid role is required (Admin, Developer, Tester, Reporter)' });
     }
 
     const member = project.members.find(

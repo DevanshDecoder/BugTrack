@@ -11,7 +11,7 @@ export const KanbanPage = ({
   onOpenNewProject,
   refreshTrigger,
 }) => {
-  const { currentProject, loadingProjects, usersList } = useProject();
+  const { currentProject, loadingProjects, usersList, canRaiseIssue } = useProject();
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -114,14 +114,16 @@ export const KanbanPage = ({
           >
             Refresh
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={onOpenNewIssue}
-          >
-            New Issue
-          </Button>
+          {canRaiseIssue && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Plus}
+              onClick={onOpenNewIssue}
+            >
+              New Issue
+            </Button>
+          )}
         </div>
       </div>
 

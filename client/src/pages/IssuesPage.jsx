@@ -12,7 +12,7 @@ export const IssuesPage = ({
   onOpenNewProject,
   refreshTrigger,
 }) => {
-  const { currentProject, loadingProjects } = useProject();
+  const { currentProject, loadingProjects, canRaiseIssue } = useProject();
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,14 +106,16 @@ export const IssuesPage = ({
           >
             Refresh
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={onOpenNewIssue}
-          >
-            New Issue
-          </Button>
+          {canRaiseIssue && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Plus}
+              onClick={onOpenNewIssue}
+            >
+              New Issue
+            </Button>
+          )}
         </div>
       </div>
 

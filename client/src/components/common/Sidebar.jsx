@@ -128,7 +128,9 @@ export const Sidebar = ({ onOpenNewProject }) => {
             >
               <option value="Admin">Admin</option>
               <option value="Developer">Developer</option>
+              <option value="Tester">Tester</option>
               <option value="Reporter">Reporter</option>
+              <option value="Viewer">Viewer (Read-only)</option>
             </select>
           </div>
         </div>

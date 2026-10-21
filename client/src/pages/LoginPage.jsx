@@ -113,7 +113,7 @@ export const LoginPage = () => {
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
             Quick Test Accounts (Click to Fill)
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               type="button"
               onClick={() => fillDemoAccount('admin@bugtrack.io')}
@@ -127,6 +127,13 @@ export const LoginPage = () => {
               className="px-2 py-1.5 text-[11px] font-semibold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition truncate"
             >
               Developer
+            </button>
+            <button
+              type="button"
+              onClick={() => fillDemoAccount('tester@bugtrack.io')}
+              className="px-2 py-1.5 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition truncate"
+            >
+              Tester
             </button>
             <button
               type="button"

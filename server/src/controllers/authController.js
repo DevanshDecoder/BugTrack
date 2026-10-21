@@ -38,7 +38,7 @@ export const registerUser = async (req, res, next) => {
       name,
       email: email.toLowerCase(),
       password,
-      role: role && ['Admin', 'Developer', 'Reporter'].includes(role) ? role : 'Developer',
+      role: role && ['Admin', 'Developer', 'Tester', 'Reporter'].includes(role) ? role : 'Developer',
     });
 
     const token = generateToken(user._id);

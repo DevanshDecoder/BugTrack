@@ -26,7 +26,18 @@ export const IssueDetailModal = ({
   onIssueDeleted,
   onOpenEdit,
 }) => {
-  const { currentProject, canDeleteIssue, canEditAnyIssue, canChangeStatus, usersList } = useProject();
+  const {
+    currentProject,
+    canDeleteIssue,
+    canEditAnyIssue,
+    canAssignIssue,
+    canChangeStatus,
+    canViewComments,
+    validateStatusTransition,
+    isDeveloper,
+    isTester,
+    usersList,
+  } = useProject();
   const [activeTab, setActiveTab] = useState('comments'); // 'comments' | 'activity'
   const [updating, setUpdating] = useState(false);
 
@@ -34,6 +45,15 @@ export const IssueDetailModal = ({
 
   const handleQuickStatusChange = async (newStatus) => {
     if (!canChangeStatus) return;
+
+    if (validateStatusTransition) {
+      const validation = validateStatusTransition(issue.status, newStatus);
+      if (!validation.allowed) {
+        alert(validation.message);
+        return;
+      }
+    }
+
     try {
       setUpdating(true);
       const res = await api.patch(`/issues/${issue._id}/status`, {
@@ -41,7 +61,7 @@ export const IssueDetailModal = ({
       });
       onIssueUpdated(res.data.data);
     } catch (err) {
-      console.error('Failed to update status:', err);
+      alert(err.response?.data?.message || 'Failed to update status');
     } finally {
       setUpdating(false);
     }
@@ -56,14 +76,17 @@ export const IssueDetailModal = ({
       });
       onIssueUpdated(res.data.data);
     } catch (err) {
-      console.error('Failed to update priority:', err);
+      alert(err.response?.data?.message || 'Failed to update priority');
     } finally {
       setUpdating(false);
     }
   };
 
   const handleQuickAssigneeChange = async (newAssigneeId) => {
-    if (!canEditAnyIssue) return;
+    if (!canAssignIssue) {
+      alert('Only Admins and Reporters can assign team members to resolve issues.');
+      return;
+    }
     try {
       setUpdating(true);
       const res = await api.put(`/issues/${issue._id}`, {
@@ -71,7 +94,7 @@ export const IssueDetailModal = ({
       });
       onIssueUpdated(res.data.data);
     } catch (err) {
-      console.error('Failed to update assignee:', err);
+      alert(err.response?.data?.message || 'Failed to update assignee');
     } finally {
       setUpdating(false);
     }
@@ -126,14 +149,23 @@ export const IssueDetailModal = ({
               <span>Status:</span>
               <select
                 value={issue.status}
-                disabled={updating || !canChangeStatus}
+                disabled={updating || !canChangeStatus || (isTester && issue.status !== 'Resolved')}
                 onChange={(e) => handleQuickStatusChange(e.target.value)}
+                title={
+                  !canChangeStatus
+                    ? 'You do not have permission to change status'
+                    : isTester && issue.status !== 'Resolved'
+                    ? 'Testers can only verify issues marked as Resolved'
+                    : 'Change status'
+                }
                 className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white shadow-sm focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
               >
                 <option value="Open">Open</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Resolved">Resolved</option>
-                <option value="Closed">Closed</option>
+                <option value="Closed" disabled={isDeveloper}>
+                  {isDeveloper ? 'Closed (Tester verified)' : 'Closed'}
+                </option>
               </select>
             </div>
 
@@ -158,8 +190,9 @@ export const IssueDetailModal = ({
               <span>Assignee:</span>
               <select
                 value={issue.assignee?._id || issue.assignee || ''}
-                disabled={updating || !canEditAnyIssue}
+                disabled={updating || !canAssignIssue}
                 onChange={(e) => handleQuickAssigneeChange(e.target.value)}
+                title={!canAssignIssue ? 'Only Admins and Reporters can assign team members' : 'Assign team member'}
                 className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white shadow-sm focus:ring-1 focus:ring-indigo-500 max-w-[130px] truncate disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
               >
                 <option value="">Unassigned</option>
@@ -305,7 +338,19 @@ export const IssueDetailModal = ({
           </div>
 
           {activeTab === 'comments' ? (
-            <CommentSection issueId={issue._id} />
+            canViewComments ? (
+              <CommentSection issueId={issue._id} />
+            ) : (
+              <div className="py-8 px-4 text-center bg-slate-50 border border-slate-200/80 rounded-2xl text-slate-500 space-y-2">
+                <div className="w-10 h-10 mx-auto rounded-xl bg-slate-200/60 flex items-center justify-center text-slate-500">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <h5 className="text-xs font-bold text-slate-800">Team Conversations are Private</h5>
+                <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                  Conversations and comments for this project are visible only to the project team and Admins.
+                </p>
+              </div>
+            )
           ) : (
             <ActivityTimeline issueId={issue._id} />
           )}

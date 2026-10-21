@@ -7,7 +7,7 @@ import { recordActivity } from '../utils/activityLogger.js';
 
 // @desc    Create a new issue
 // @route   POST /api/issues
-// @access  Private (Admin, Developer, Reporter)
+// @access  Private (Admin, Developer, Tester, Reporter)
 export const createIssue = async (req, res, next) => {
   try {
     const { title, description, priority, status, assignee, dueDate, tags } = req.body;
@@ -15,6 +15,15 @@ export const createIssue = async (req, res, next) => {
 
     if (!title) {
       return res.status(400).json({ success: false, message: 'Issue title is required' });
+    }
+
+    // Role check for assigning: Only Admin and Reporter can assign team members to resolve issues
+    const canAssign = ['Admin', 'Reporter'].includes(req.projectRole);
+    if (assignee && !canAssign) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only Admins and Reporters can assign team members to resolve issues',
+      });
     }
 
     // Atomically increment issueCounter for sequential issueKey (e.g., BUG-1, BUG-2)
@@ -34,7 +43,7 @@ export const createIssue = async (req, res, next) => {
       status: status || 'Open',
       project: project._id,
       reporter: req.user._id,
-      assignee: assignee || null,
+      assignee: canAssign ? (assignee || null) : null,
       dueDate: dueDate || null,
       tags: Array.isArray(tags) ? tags : [],
     });
@@ -153,7 +162,7 @@ export const getIssueById = async (req, res, next) => {
 
 // @desc    Update issue details
 // @route   PUT /api/issues/:id
-// @access  Private (Admin, Developer)
+// @access  Private (Admin, Developer, Tester, Reporter)
 export const updateIssue = async (req, res, next) => {
   try {
     const issue = await Issue.findById(req.params.id);
@@ -161,11 +170,11 @@ export const updateIssue = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Issue not found' });
     }
 
-    // Role check: Only Admin and Developer can edit issue details
-    if (!['Admin', 'Developer'].includes(req.projectRole)) {
+    // Role check: Only project members can update issues
+    if (!['Admin', 'Developer', 'Tester', 'Reporter'].includes(req.projectRole)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied: Only Project Admins and Developers can update issue details',
+        message: 'Access denied: You must be a project member to update issues',
       });
     }
 
@@ -174,7 +183,44 @@ export const updateIssue = async (req, res, next) => {
     // Track changes for activity log
     const changes = [];
 
+    // Assignment permission check: Only Admin and Reporter can assign or reassign
+    if (assignee !== undefined) {
+      const oldAssigneeId = issue.assignee ? issue.assignee.toString() : '';
+      const newAssigneeId = assignee ? assignee.toString() : '';
+
+      if (oldAssigneeId !== newAssigneeId) {
+        if (!['Admin', 'Reporter'].includes(req.projectRole)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: Only Admins and Reporters can assign team members to resolve issues',
+          });
+        }
+      }
+    }
+
+    // Status transition check
     if (status && status !== issue.status) {
+      if (req.projectRole === 'Reporter') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Reporters cannot change issue status',
+        });
+      }
+
+      if (req.projectRole === 'Developer' && status === 'Closed') {
+        return res.status(403).json({
+          success: false,
+          message: "Developers cannot close issues directly. When an issue is marked as 'Resolved', it must be verified and closed by a Tester or Admin.",
+        });
+      }
+
+      if (req.projectRole === 'Tester' && issue.status !== 'Resolved') {
+        return res.status(403).json({
+          success: false,
+          message: "Testers can only verify issues that are currently 'Resolved' (move to 'Closed' or reopen).",
+        });
+      }
+
       changes.push({
         action: 'status_changed',
         field: 'status',
@@ -276,13 +322,13 @@ export const updateIssue = async (req, res, next) => {
 
 // @desc    Quick status change (ideal for Kanban drag & drop)
 // @route   PATCH /api/issues/:id/status
-// @access  Private (Admin, Developer)
+// @access  Private (Admin, Developer, Tester)
 export const updateIssueStatus = async (req, res, next) => {
   try {
-    if (!['Admin', 'Developer'].includes(req.projectRole)) {
+    if (!['Admin', 'Developer', 'Tester'].includes(req.projectRole)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied: Only Project Admins and Developers can update issue status',
+        message: 'Access denied: Only Admins, Developers, and Testers can update issue status',
       });
     }
 
@@ -299,6 +345,23 @@ export const updateIssueStatus = async (req, res, next) => {
     const oldStatus = issue.status;
     if (oldStatus === status) {
       return res.json({ success: true, data: issue });
+    }
+
+    // Role-based workflow validation:
+    // 1. Developer cannot close issues directly. When an issue is marked Resolved, it must be verified by a Tester.
+    if (req.projectRole === 'Developer' && status === 'Closed') {
+      return res.status(403).json({
+        success: false,
+        message: "Developers cannot close issues directly. When an issue is marked as 'Resolved', it must be verified and closed by a Tester or Admin.",
+      });
+    }
+
+    // 2. Tester verifies Resolved issues (move to Closed or reopen to In Progress/Open)
+    if (req.projectRole === 'Tester' && oldStatus !== 'Resolved') {
+      return res.status(403).json({
+        success: false,
+        message: "Testers can only verify issues that are currently 'Resolved' (move to 'Closed' or reopen if verification fails).",
+      });
     }
 
     issue.status = status;

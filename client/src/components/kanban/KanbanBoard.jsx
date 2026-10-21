@@ -16,7 +16,7 @@ export const KanbanBoard = ({
   onSelectIssue,
   onOpenNewIssue,
 }) => {
-  const { canChangeStatus } = useProject();
+  const { canChangeStatus, validateStatusTransition } = useProject();
 
   const handleDragStart = (e, issue) => {
     if (!canChangeStatus) return;
@@ -26,9 +26,20 @@ export const KanbanBoard = ({
 
   const handleStatusChange = async (issueId, newStatus) => {
     if (!canChangeStatus) {
-      alert('Only Project Admins and Developers can update issue status');
+      alert('You do not have permission to update issue status');
       return;
     }
+
+    const targetIssue = issues.find((i) => i._id === issueId);
+    if (targetIssue && validateStatusTransition) {
+      const val = validateStatusTransition(targetIssue.status, newStatus);
+      if (!val.allowed) {
+        alert(val.message);
+        return;
+      }
+    }
+
+    const previousIssues = [...issues];
 
     // Optimistic local update
     setIssues((prev) =>
@@ -40,7 +51,8 @@ export const KanbanBoard = ({
     } catch (err) {
       console.error('Failed to update status on server:', err);
       // Revert if error
-      alert('Could not update status. Check permissions or network.');
+      setIssues(previousIssues);
+      alert(err.response?.data?.message || 'Could not update status. Check permissions or network.');
     }
   };
 
