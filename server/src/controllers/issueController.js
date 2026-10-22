@@ -178,6 +178,17 @@ export const updateIssue = async (req, res, next) => {
       });
     }
 
+    // Optimistic Concurrency Control (OCC) check
+    const clientVersion = req.body.version !== undefined ? req.body.version : req.body.__v;
+    if (clientVersion !== undefined && issue.__v !== undefined && issue.__v !== Number(clientVersion)) {
+      return res.status(409).json({
+        success: false,
+        conflict: true,
+        message: 'Conflict detected: This issue was modified by another user while you were editing it. Please refresh and review latest changes before saving.',
+        currentVersion: issue.__v,
+      });
+    }
+
     const { title, description, priority, status, assignee, dueDate, tags } = req.body;
 
     // Track changes for activity log
@@ -316,6 +327,13 @@ export const updateIssue = async (req, res, next) => {
       data: updatedIssue,
     });
   } catch (error) {
+    if (error.name === 'VersionError') {
+      return res.status(409).json({
+        success: false,
+        conflict: true,
+        message: 'Conflict detected: Concurrent update detected. Another user modified this issue. Please refresh.',
+      });
+    }
     next(error);
   }
 };
@@ -340,6 +358,17 @@ export const updateIssueStatus = async (req, res, next) => {
     const issue = await Issue.findById(req.params.id);
     if (!issue) {
       return res.status(404).json({ success: false, message: 'Issue not found' });
+    }
+
+    // Optimistic Concurrency Control (OCC) check
+    const clientVersion = req.body.version !== undefined ? req.body.version : req.body.__v;
+    if (clientVersion !== undefined && issue.__v !== undefined && issue.__v !== Number(clientVersion)) {
+      return res.status(409).json({
+        success: false,
+        conflict: true,
+        message: 'Conflict detected: This issue was modified by another user. Please refresh and review latest changes.',
+        currentVersion: issue.__v,
+      });
     }
 
     const oldStatus = issue.status;
@@ -388,6 +417,13 @@ export const updateIssueStatus = async (req, res, next) => {
       data: populatedIssue,
     });
   } catch (error) {
+    if (error.name === 'VersionError') {
+      return res.status(409).json({
+        success: false,
+        conflict: true,
+        message: 'Conflict detected: Concurrent update detected. Another user modified this issue.',
+      });
+    }
     next(error);
   }
 };

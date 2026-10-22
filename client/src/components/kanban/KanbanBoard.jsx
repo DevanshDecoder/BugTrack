@@ -47,12 +47,19 @@ export const KanbanBoard = ({
     );
 
     try {
-      await api.patch(`/issues/${issueId}/status`, { status: newStatus });
+      await api.patch(`/issues/${issueId}/status`, {
+        status: newStatus,
+        version: targetIssue?.__v,
+      });
     } catch (err) {
       console.error('Failed to update status on server:', err);
       // Revert if error
       setIssues(previousIssues);
-      alert(err.response?.data?.message || 'Could not update status. Check permissions or network.');
+      if (err.response?.status === 409) {
+        alert('Conflict detected: This issue was modified concurrently by another team member. Board state has been refreshed.');
+      } else {
+        alert(err.response?.data?.message || 'Could not update status. Check permissions or network.');
+      }
     }
   };
 

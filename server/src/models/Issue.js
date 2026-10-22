@@ -59,6 +59,8 @@ const issueSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    optimisticConcurrency: true,
+    versionKey: '__v',
   }
 );
 

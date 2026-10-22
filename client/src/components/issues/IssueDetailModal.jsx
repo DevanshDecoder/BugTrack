@@ -58,10 +58,19 @@ export const IssueDetailModal = ({
       setUpdating(true);
       const res = await api.patch(`/issues/${issue._id}/status`, {
         status: newStatus,
+        version: issue.__v,
       });
       onIssueUpdated(res.data.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status');
+      if (err.response?.status === 409) {
+        alert(err.response?.data?.message || 'Conflict: This issue was modified by another user. Reloading latest changes...');
+        try {
+          const fresh = await api.get(`/issues/${issue._id}`);
+          if (fresh.data?.data) onIssueUpdated(fresh.data.data);
+        } catch (_) {}
+      } else {
+        alert(err.response?.data?.message || 'Failed to update status');
+      }
     } finally {
       setUpdating(false);
     }
@@ -73,10 +82,19 @@ export const IssueDetailModal = ({
       setUpdating(true);
       const res = await api.put(`/issues/${issue._id}`, {
         priority: newPriority,
+        version: issue.__v,
       });
       onIssueUpdated(res.data.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update priority');
+      if (err.response?.status === 409) {
+        alert(err.response?.data?.message || 'Conflict: This issue was modified by another user. Reloading latest changes...');
+        try {
+          const fresh = await api.get(`/issues/${issue._id}`);
+          if (fresh.data?.data) onIssueUpdated(fresh.data.data);
+        } catch (_) {}
+      } else {
+        alert(err.response?.data?.message || 'Failed to update priority');
+      }
     } finally {
       setUpdating(false);
     }
@@ -91,10 +109,19 @@ export const IssueDetailModal = ({
       setUpdating(true);
       const res = await api.put(`/issues/${issue._id}`, {
         assignee: newAssigneeId || null,
+        version: issue.__v,
       });
       onIssueUpdated(res.data.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update assignee');
+      if (err.response?.status === 409) {
+        alert(err.response?.data?.message || 'Conflict: This issue was modified by another user. Reloading latest changes...');
+        try {
+          const fresh = await api.get(`/issues/${issue._id}`);
+          if (fresh.data?.data) onIssueUpdated(fresh.data.data);
+        } catch (_) {}
+      } else {
+        alert(err.response?.data?.message || 'Failed to update assignee');
+      }
     } finally {
       setUpdating(false);
     }
